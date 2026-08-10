@@ -30,7 +30,7 @@ const getAnimalsOptions = () => queryOptions({
 const getSchedulesOptions = () => queryOptions({
   queryKey: ['feeding_schedules'],
   queryFn: async () => {
-    const maxDateStr = format(addDays(new Date(), 30), 'yyyy-MM-dd');
+    const maxDateStr = format(addDays(new Date(), 360), 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('feeding_schedules')
       .select('*')
