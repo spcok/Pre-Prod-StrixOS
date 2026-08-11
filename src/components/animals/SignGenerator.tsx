@@ -32,8 +32,8 @@ const getIUCNBadgeImage = (status?: string) => {
   if (s.includes('CRITICAL')) return imgCR;
   if (s.includes('DATA')) return imgDD;
   if (s.includes('WILD')) return imgEW;
-  if (s.includes('ENDANGERED')) return imgEN; // Must be after CRITICAL check
-  if (s.includes('EXTINCT')) return imgEX; // Must be after WILD check
+  if (s.includes('ENDANGERED')) return imgEN; 
+  if (s.includes('EXTINCT')) return imgEX; 
   if (s.includes('LEAST') || s.includes('LC')) return imgLC;
   if (s.includes('NEAR') || s.includes('NT')) return imgNT;
   if (s.includes('VULNERABLE') || s.includes('VU')) return imgVU;
@@ -129,16 +129,15 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
     if (!signRef.current) return;
     setIsExporting(true);
     
-    // Slight delay to ensure React finishes hiding inputs if transitioning from edit mode
     await new Promise(resolve => setTimeout(resolve, 150));
     
     try {
       const dataUrl = await toJpeg(signRef.current, { 
         quality: 0.95,
-        pixelRatio: 3, // High-res for printing
+        pixelRatio: 3, 
         backgroundColor: '#ffffff',
         style: {
-          transform: 'none', // Prevents layout shifting during capture
+          transform: 'none', 
         }
       });
       
@@ -153,6 +152,13 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const formatDate = (date?: any) => {
+      if (!date) return 'Unknown';
+      const dateStr = String(date);
+      if (dateStr.startsWith('1900-01-01')) return 'Unknown';
+      return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const getAge = (dob?: any) => {
@@ -194,7 +200,7 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
 
   const containerStyle = useMemo(() => {
       if (mapLayout === 'card') return { width: '800px', height: '600px', minWidth: '800px', minHeight: '600px' };
-      return { width: '794px', height: '1123px', minWidth: '794px', minHeight: '1123px' }; // A4 proportions
+      return { width: '794px', height: '1123px', minWidth: '794px', minHeight: '1123px' }; 
   }, [mapLayout]);
 
   const isHighRisk = animal.hazard_rating === 'HIGH' || animal.is_venomous;
@@ -204,6 +210,14 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
     const visibleLines = limit ? lines.slice(0, limit) : lines;
     if (visibleLines.length === 0) return <li>Content pending...</li>;
     return visibleLines.map((line, i) => <li key={i}>{line}</li>);
+  };
+
+  const renderBriefBullets = (text: string) => {
+    if (!text) return <li>Content pending...</li>;
+    const items = text.split(/(?:\n|\.\s+)/).filter(l => l.trim().length > 0);
+    return items.map((item, i) => (
+      <li key={i} className="mb-1">{item.trim()}{item.trim().endsWith('.') ? '' : '.'}</li>
+    ));
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -271,13 +285,13 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
             </div>
 
             <div>
-              <InputLabel>Species Brief</InputLabel>
+              <InputLabel>Species Brief (Paragraph)</InputLabel>
               <textarea value={content.speciesBrief} onChange={(e) => setContent(p => ({...p, speciesBrief: e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none h-24 resize-none custom-scrollbar" />
             </div>
             
             <div className="grid grid-cols-2 gap-4 border-y border-slate-100 py-6">
               <div>
-                <InputLabel>Native Origin</InputLabel>
+                <InputLabel>Natural Habitat</InputLabel>
                 <input value={content.wildOrigin} onChange={(e) => setContent(p => ({...p, wildOrigin: e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               <div>
@@ -323,61 +337,87 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
             >
                 
                 {mapLayout === 'card' ? (
-                    <div className="p-8 h-full flex flex-col relative bg-white">
+                    <div className="p-8 h-full flex flex-col relative bg-white pt-10">
                         <div className={`absolute top-0 left-0 right-0 h-6 ${theme.bg}`}></div>
-                        <div className="mb-6 flex justify-between items-start pt-4 shrink-0">
-                            <div>
-                                <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter mb-1 flex items-center gap-4">
-                                    {customName}
-                                    {isHighRisk && <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded tracking-widest align-middle font-bold transform -translate-y-1 shadow-sm">HIGH RISK</span>}
-                                </h1>
-                                <h2 className={`text-2xl font-bold uppercase tracking-wide ${theme.text}`}>{animal.species}</h2>
-                                <p className="text-lg font-serif italic text-slate-400 mt-1">{animal.latin_name}</p>
+                        
+                        {/* FULL HEIGHT 2-COLUMN GRID (Top to Bottom) */}
+                        <div className="grid grid-cols-12 gap-6 flex-1 min-h-0 pb-2">
+                            
+                            {/* LEFT COLUMN: Names -> Brief -> Stats */}
+                            <div className="col-span-6 flex flex-col gap-3 min-h-0">
+                                
+                                {/* TEXT HEADER: Now safely isolated in the left column */}
+                                <div className="shrink-0 mb-1">
+                                    <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter mb-1 flex items-center gap-4 flex-wrap leading-none">
+                                        {customName}
+                                        {isHighRisk && <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded tracking-widest align-middle font-bold shadow-sm">HIGH RISK</span>}
+                                    </h1>
+                                    <h2 className={`text-2xl font-bold uppercase tracking-wide mt-1 ${theme.text}`}>{animal.species}</h2>
+                                    <p className="text-lg font-serif italic text-slate-400 mt-0 leading-tight">{animal.latin_name}</p>
+                                </div>
+                                
+                                {/* SPECIES BRIEF: Now slides up directly beneath the text */}
+                                <div className={`${theme.containerBg} border ${theme.border} p-4 rounded-xl relative flex-1 min-h-0 flex flex-col`}>
+                                    <h3 className={`text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5 shrink-0 ${theme.textDark}`}>
+                                        <Sparkles size={12}/> SPECIES BRIEF
+                                    </h3>
+                                    <ul className={`list-disc list-outside pl-4 text-sm font-bold leading-relaxed ${theme.textDark} opacity-90 overflow-hidden`}>
+                                        {renderBriefBullets(content.speciesBrief)}
+                                    </ul>
+                                </div>
+                                
+                                {/* STATS BLOCK */}
+                                <div className="flex flex-col gap-2.5 mt-auto shrink-0">
+                                    <div className="grid grid-cols-2 gap-x-4">
+                                        <div>
+                                            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">DATE OF BIRTH</h4>
+                                            <p className="font-black text-slate-800 text-base">{formatDate(animal.date_of_birth)}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">GENDER</h4>
+                                            <p className="font-black text-slate-800 uppercase text-base">{animal.gender}</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">NATURAL HABITAT</h4>
+                                        <p className="font-black text-slate-800 text-sm truncate">{content.wildOrigin || 'Pending...'}</p>
+                                    </div>
+                                    {(animal.category === 'MAMMAL' || animal.category === 'EXOTIC') ? (
+                                        <div>
+                                            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">HAZARD CLASS</h4>
+                                            <div className="flex items-center gap-2">
+                                                <p className={`font-black text-sm uppercase ${animal.hazard_rating === 'HIGH' ? 'text-rose-600' : animal.hazard_rating === 'MEDIUM' ? 'text-amber-600' : 'text-slate-800'}`}>{animal.hazard_rating}</p>
+                                                {animal.is_venomous && <span className="bg-rose-600 text-white text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider">VENOMOUS</span>}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">CHIP/RING</h4>
+                                            <p className="font-black text-slate-800 font-mono text-sm">{animal.microchip_id || animal.ring_number || 'N/A'}</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex items-start gap-6">
-                                  <div className="w-36 h-36 rounded-xl overflow-hidden border-4 border-white shadow-lg bg-slate-100 shrink-0 relative flex items-center justify-center">
-                                      <ImageIcon size={32} className="text-slate-300 absolute" />
-                                      <img src={animal.profile_image_url || ''} alt={animal.name} className="w-full h-full object-cover relative z-10" crossOrigin="anonymous" onError={handleImageError}/>
-                                  </div>
-                                  
-                                  {/* INJECTED IUCN BADGE - CARD LAYOUT */}
-                                  <div className="mt-1">
-                                      <img 
-                                        src={getIUCNBadgeImage(animal.red_list_status)} 
-                                        alt="IUCN Status" 
-                                        className="h-16 w-auto object-contain drop-shadow-sm" 
-                                      />
-                                  </div>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-12 gap-8 flex-1 min-h-0">
-                            <div className="col-span-7 flex flex-col gap-5 min-h-0">
-                                  <div className={`${theme.containerBg} border ${theme.border} p-5 rounded-xl relative flex-1 min-h-0 flex flex-col`}>
-                                      <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 flex items-center gap-1.5 shrink-0 ${theme.textDark}`}>
-                                          <Sparkles size={12}/> SPECIES BRIEF
-                                      </h3>
-                                      <p className={`text-sm font-bold leading-relaxed text-justify ${theme.textDark} opacity-90 overflow-hidden`}>
-                                          {content.speciesBrief || "Content pending..."}
-                                      </p>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-x-8 gap-y-4 mt-auto shrink-0">
-                                      <div><h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">ANIMAL AGE</h4><p className="font-black text-slate-800 text-base">{getAge(animal.date_of_birth)}</p></div>
-                                      <div><h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">GENDER</h4><p className="font-black text-slate-800 uppercase text-base">{animal.gender}</p></div>
-                                      <div><h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">NATIVE ORIGIN</h4><p className="font-black text-slate-800 text-sm truncate">{content.wildOrigin || 'Pending...'}</p></div>
-                                      {(animal.category === 'MAMMAL' || animal.category === 'EXOTIC') ? (
-                                          <div>
-                                              <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">HAZARD CLASS</h4>
-                                              <div className="flex items-center gap-2">
-                                                  <p className={`font-black text-sm uppercase ${animal.hazard_rating === 'HIGH' ? 'text-rose-600' : animal.hazard_rating === 'MEDIUM' ? 'text-amber-600' : 'text-slate-800'}`}>{animal.hazard_rating}</p>
-                                                  {animal.is_venomous && <span className="bg-rose-600 text-white text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider">VENOMOUS</span>}
-                                              </div>
-                                          </div>
-                                      ) : (
-                                          <div><h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">CHIP/RING</h4><p className="font-black text-slate-800 font-mono text-sm">{animal.microchip_id || animal.ring_number || 'N/A'}</p></div>
-                                      )}
-                                  </div>
-                            </div>
-                            <div className="col-span-5 flex flex-col h-full gap-3 min-h-0">
+                            
+                            {/* RIGHT COLUMN: Photo/Badge -> Map -> Temps */}
+                            <div className="col-span-6 flex flex-col h-full gap-4 min-h-0">
+                                
+                                {/* HEADER IMAGES: Isolated vertically from the text */}
+                                <div className="flex items-center justify-end gap-5 shrink-0">
+                                    <div className="w-56 aspect-[4/3] rounded-xl overflow-hidden border-2 border-slate-200 shadow-lg bg-slate-100 shrink-0 relative flex items-center justify-center">
+                                        <ImageIcon size={32} className="text-slate-300 absolute" />
+                                        <img src={animal.profile_image_url || ''} alt={animal.name} className="w-full h-full object-cover object-center relative z-10" crossOrigin="anonymous" onError={handleImageError}/>
+                                    </div>
+                                    <div className="shrink-0">
+                                        <img 
+                                          src={getIUCNBadgeImage(animal.red_list_status)} 
+                                          alt="IUCN Status" 
+                                          className="h-24 w-auto object-contain drop-shadow-sm" 
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {/* MAP */}
                                 <div className="flex-1 flex flex-col min-h-0">
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-0.5 shrink-0">NATIVE RANGE</h3>
                                     <div className="flex-1 w-full bg-slate-50 rounded-xl border border-slate-100 overflow-hidden flex items-center justify-center relative min-h-0">
@@ -390,27 +430,37 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
                                           )}
                                     </div>
                                 </div>
+                                
+                                {/* TEMPS */}
                                 <div className="flex flex-col gap-3 shrink-0">
                                     <div className="flex gap-3">
-                                        <div className="flex-1 bg-orange-500 text-white p-3 rounded-xl shadow-lg flex items-center gap-3">
-                                            <Sun size={24} className="shrink-0" />
-                                            <div className="min-w-0"><p className="text-[8px] font-black opacity-80 uppercase tracking-widest whitespace-nowrap">DAY TARGET</p><p className="text-2xl font-black leading-none">{animal.target_day_temp_c || '?'}°C</p></div>
+                                        <div className="flex-1 bg-orange-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-4">
+                                            <Sun size={32} className="shrink-0" />
+                                            <div className="min-w-0">
+                                                <p className="text-[9px] font-black opacity-90 uppercase tracking-widest whitespace-nowrap">DAY TARGET</p>
+                                                <p className="text-4xl font-black leading-none mt-1">{animal.target_day_temp_c || '?'}°C</p>
+                                            </div>
                                         </div>
-                                        <div className="flex-1 bg-emerald-600 text-white p-3 rounded-xl shadow-lg flex items-center gap-3">
-                                            <Moon size={24} className="shrink-0" />
-                                            <div className="min-w-0"><p className="text-[8px] font-black opacity-80 uppercase tracking-widest whitespace-nowrap">NIGHT TARGET</p><p className="text-2xl font-black leading-none">{animal.target_night_temp_c || '?'}°C</p></div>
+                                        <div className="flex-1 bg-emerald-600 text-white p-4 rounded-xl shadow-lg flex items-center gap-4">
+                                            <Moon size={32} className="shrink-0" />
+                                            <div className="min-w-0">
+                                                <p className="text-[9px] font-black opacity-90 uppercase tracking-widest whitespace-nowrap">NIGHT TARGET</p>
+                                                <p className="text-4xl font-black leading-none mt-1">{animal.target_night_temp_c || '?'}°C</p>
+                                            </div>
                                         </div>
                                     </div>
                                     {(animal.target_humidity_min_percent || animal.target_humidity_max_percent) && (
-                                        <div className="bg-cyan-600 text-white p-3 rounded-xl shadow-lg flex items-center gap-3">
-                                            <Droplets size={24} className="shrink-0" />
-                                            <div className="min-w-0"><p className="text-[8px] font-black opacity-80 uppercase tracking-widest whitespace-nowrap">HUMIDITY RANGE</p><p className="text-2xl font-black leading-none">{animal.target_humidity_min_percent || '?'}-{animal.target_humidity_max_percent || '?'}%</p></div>
+                                        <div className="bg-cyan-600 text-white p-4 rounded-xl shadow-lg flex items-center gap-4">
+                                            <Droplets size={32} className="shrink-0" />
+                                            <div className="min-w-0">
+                                                <p className="text-[9px] font-black opacity-90 uppercase tracking-widest whitespace-nowrap">HUMIDITY RANGE</p>
+                                                <p className="text-4xl font-black leading-none mt-1">{animal.target_humidity_min_percent || '?'}-{animal.target_humidity_max_percent || '?'}%</p>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
-                        <div className="mt-6 pt-4 border-t border-slate-100 text-right shrink-0"><p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.25em]">KOA REGISTRY - {new Date().getFullYear()}</p></div>
                     </div>
                 ) : (
                     <>
@@ -420,18 +470,18 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
                             {orgProfile?.logo_url ? <img src={orgProfile.logo_url} alt="Logo" className="h-20 w-auto object-contain bg-white rounded-xl p-2 shadow-lg" crossOrigin="anonymous" onError={handleImageError} /> : <div className="h-16 w-16 bg-white rounded-xl flex items-center justify-center text-slate-900 font-bold text-2xl">KOA</div>}
                         </div>
                         
-                        <div className="flex-1 min-h-0 py-8 pl-5 pr-8 grid grid-cols-12 gap-6 overflow-hidden">
+                        {/* INCREASED gap-6 to gap-8 TO GIVE MORE DEFINITION BETWEEN LEFT & RIGHT COLUMNS */}
+                        <div className="flex-1 min-h-0 py-8 pl-5 pr-8 grid grid-cols-12 gap-8 overflow-hidden">
                             
-                            {/* LEFT COLUMN */}
-                            <div className={`col-span-4 flex flex-col min-h-0 ${mapLayout === 'bottom' ? 'gap-2' : 'gap-4'}`}>
-                                <div className="aspect-[4/5] w-full rounded-[1.5rem] overflow-hidden border-4 border-[#1e293b] shadow-xl relative shrink-0 flex items-center justify-center bg-slate-100">
+                            {/* LEFT COLUMN - INCREASED VERTICAL GAPS FOR DEFINITION */}
+                            <div className={`col-span-5 flex flex-col min-h-0 ${mapLayout === 'bottom' ? 'gap-4' : 'gap-5'}`}>
+                                <div className="aspect-[4/3] w-full rounded-[1.5rem] overflow-hidden border-4 border-[#1e293b] shadow-xl relative shrink-0 flex items-center justify-center bg-slate-100">
                                   <ImageIcon size={32} className="text-slate-300 absolute z-0" />
-                                  <img src={animal.profile_image_url || ''} alt={animal.name} className="w-full h-full object-cover relative z-10" crossOrigin="anonymous" onError={handleImageError}/>
+                                  <img src={animal.profile_image_url || ''} alt={animal.name} className="w-full h-full object-cover object-center relative z-10" crossOrigin="anonymous" onError={handleImageError}/>
                                 </div>
                                 <div className="bg-[#1e293b] rounded-2xl p-4 flex items-center justify-between shadow-lg text-white shrink-0">
                                   <span className="text-xs font-black uppercase tracking-[0.25em] pl-2">STATUS</span>
                                   
-                                  {/* INJECTED IUCN BADGE - A4 LAYOUT */}
                                   <div className="origin-right">
                                     <img 
                                         src={getIUCNBadgeImage(animal.red_list_status)} 
@@ -439,7 +489,6 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
                                         className="h-12 w-auto object-contain drop-shadow-sm" 
                                     />
                                   </div>
-                                  
                                 </div>
                                 
                                 {mapLayout === 'side' ? (
@@ -452,11 +501,12 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
                                 ) : (
                                     <>
                                         <div className="flex flex-col gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm shrink-0">
-                                            <div className="flex items-center gap-3 border-b border-slate-200 pb-2"><div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 shrink-0"><Info size={16}/></div><div><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">AGE</p><p className="font-bold text-slate-800 text-sm">{getAge(animal.date_of_birth)}</p></div></div>
+                                            <div className="flex items-center gap-3 border-b border-slate-200 pb-2"><div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 shrink-0"><Info size={16}/></div><div><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">DOB</p><p className="font-bold text-slate-800 text-sm">{formatDate(animal.date_of_birth)}</p></div></div>
                                             <div className="flex items-center gap-3 border-b border-slate-200 pb-2"><div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 shrink-0"><Info size={16}/></div><div><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">GENDER</p><p className="font-bold text-slate-800 text-sm uppercase">{animal.gender}</p></div></div>
                                             <div className="flex items-center gap-3"><div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 shrink-0"><Calendar size={16}/></div><div><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">ARRIVED</p><p className="font-bold text-slate-800 text-sm">{getArrivalYear(animal.acquisition_date)}</p></div></div>
                                         </div>
-                                        <div className="grid grid-cols-1 gap-2 bg-[#f0fdf4] p-3 rounded-xl border border-emerald-100 flex-1 min-h-0 content-start overflow-auto no-scrollbar mb-6">
+                                        {/* INCREASED INNER GAP FROM gap-2 to gap-3 FOR CLEANER READ */}
+                                        <div className="grid grid-cols-1 gap-3 bg-[#f0fdf4] p-3 rounded-xl border border-emerald-100 flex-1 min-h-0 content-start overflow-auto no-scrollbar mb-6">
                                             <div className="bg-white/50 p-2.5 rounded-lg border border-emerald-100 flex flex-col justify-center"><p className="text-[7px] font-black text-emerald-700 uppercase tracking-widest mb-0.5">WILD LIFESPAN</p><p className="text-sm font-bold text-slate-800 leading-tight">{content.lifespanWild || '-'}</p></div>
                                             <div className="bg-white/50 p-2.5 rounded-lg border border-emerald-100 flex flex-col justify-center"><p className="text-[7px] font-black text-emerald-700 uppercase tracking-widest mb-0.5">CAPTIVE LIFESPAN</p><p className="text-sm font-bold text-slate-800 leading-tight">{content.lifespanCaptivity || '-'}</p></div>
                                             <div className="bg-white/50 p-2.5 rounded-lg border border-emerald-100 flex flex-col justify-center"><p className="text-[7px] font-black text-emerald-700 uppercase tracking-widest mb-0.5">{dynamicDimensionLabel}</p><p className="text-sm font-bold text-slate-800 leading-tight">{content.wingspan || '-'}</p></div>
@@ -466,8 +516,8 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
                                 )}
                             </div>
                             
-                            {/* RIGHT COLUMN */}
-                            <div className={`col-span-8 flex flex-col min-h-0 ${mapLayout === 'bottom' ? 'gap-4' : 'gap-6'}`}>
+                            {/* RIGHT COLUMN - INCREASED VERTICAL GAPS FOR DEFINITION */}
+                            <div className={`col-span-7 flex flex-col min-h-0 ${mapLayout === 'bottom' ? 'gap-6' : 'gap-8'}`}>
                                 <div className="shrink-0">
                                     <h2 className="text-[4rem] font-black text-[#1e293b] uppercase leading-[0.8] tracking-tight mb-2">{customName}</h2>
                                     <h3 className="text-2xl font-bold text-[#10b981] uppercase tracking-wider">{animal.species}</h3>
@@ -477,7 +527,7 @@ export function SignGenerator({ animal, onClose }: SignGeneratorProps) {
                                     {mapLayout === 'side' && (
                                         <>
                                             <div className="flex gap-8 mb-6 mt-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                                <div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-slate-500 shadow-sm border border-slate-200"><Info size={20}/></div><div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">AGE</p><p className="font-bold text-slate-800">{getAge(animal.date_of_birth)}</p></div></div>
+                                                <div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-slate-500 shadow-sm border border-slate-200"><Info size={20}/></div><div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">DOB</p><p className="font-bold text-slate-800">{formatDate(animal.date_of_birth)}</p></div></div>
                                                 <div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-slate-500 shadow-sm border border-slate-200"><Info size={20}/></div><div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">GENDER</p><p className="font-bold text-slate-800 uppercase">{animal.gender}</p></div></div>
                                                 <div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-slate-500 shadow-sm border border-slate-200"><Calendar size={20}/></div><div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ARRIVED</p><p className="font-bold text-slate-800">{getArrivalYear(animal.acquisition_date)}</p></div></div>
                                             </div>

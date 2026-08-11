@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQueryClient, useQuery, queryOptions } from '@tanstack/react-query';
-import { X, Save, Loader2, AlertCircle, Plus, Trash2, Scale, Utensils, Thermometer, ShieldAlert } from 'lucide-react';
+import { X, Save, Loader2, AlertCircle, Plus, Trash2, Scale, Utensils, Thermometer, ShieldAlert, Droplets } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { toast } from 'sonner'; 
 import { z } from 'zod'; // THE FIREWALL
@@ -26,6 +26,8 @@ const DailyLogComplianceSchema = z.object({
   basking_temp_c: z.any().optional(),
   cool_temp_c: z.any().optional(),
   meals: z.array(z.any()).optional(),
+  mist_level: z.string().optional(), // Added for Misting Logs
+  am_pm: z.string().optional(),     // Added for Misting Logs
   _optimisticId: z.string().optional()
 }).superRefine((data, ctx) => {
   // RULE: Weight Justification
@@ -53,7 +55,7 @@ interface DailyLogFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   animal: Animal;
-  mode: 'WEIGHT' | 'FEEDING' | 'TEMPERATURE' | 'OBSERVATION';
+  mode: 'WEIGHT' | 'FEEDING' | 'TEMPERATURE' | 'OBSERVATION' | 'MISTING'; // Added MISTING mode
   initialLogData?: DailyLog | any; // allow extended types while migrating
 }
 
@@ -279,6 +281,12 @@ export default function DailyLogFormModal({ isOpen, onClose, animal, mode, initi
         updates.cool_temp_c = safeTempParse(value.cool_temp_c);
       }
 
+      // Inject Misting Properties
+      if (mode === 'MISTING') {
+        updates.mist_level = value.mist_level;
+        updates.am_pm = value.am_pm;
+      }
+
       if (initialLogData?.id) {
         return await dailyLogService.updateLogDirect(initialLogData.id, updates);
       } else {
@@ -316,6 +324,8 @@ export default function DailyLogFormModal({ isOpen, onClose, animal, mode, initi
         weight_not_required: mode === 'WEIGHT' ? variables.weight_not_required : initialLogData?.weight_not_required,
         temperature_c: mode === 'TEMPERATURE' ? parseFloat(variables.temperature_c || '0') : initialLogData?.temperature_c,
         feed_details: mode === 'FEEDING' ? { meals: variables.meals } : initialLogData?.feed_details,
+        mist_level: mode === 'MISTING' ? variables.mist_level : initialLogData?.mist_level,
+        am_pm: mode === 'MISTING' ? variables.am_pm : initialLogData?.am_pm,
         _isOptimistic: true
       };
 
@@ -367,6 +377,8 @@ export default function DailyLogFormModal({ isOpen, onClose, animal, mode, initi
       basking_temp_c: initialLogData?.basking_temp_c?.toString() || '',
       cool_temp_c: initialLogData?.cool_temp_c?.toString() || '',
       meals: initialMeals(),
+      mist_level: initialLogData?.mist_level || 'MEDIUM', // Misting Defaults
+      am_pm: initialLogData?.am_pm || format(new Date(), 'a').toUpperCase(), // Auto detects AM/PM
       _optimisticId: '' 
     },
     onSubmit: async ({ value }) => {
@@ -397,6 +409,7 @@ export default function DailyLogFormModal({ isOpen, onClose, animal, mode, initi
             {mode === 'WEIGHT' && <Scale size={16} className="text-emerald-600" />}
             {mode === 'FEEDING' && <Utensils size={16} className="text-amber-600" />}
             {mode === 'TEMPERATURE' && <Thermometer size={16} className="text-blue-600" />}
+            {mode === 'MISTING' && <Droplets size={16} className="text-cyan-600" />}
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
               {initialLogData ? `Amend ${mode}` : `Log ${mode}`}
             </h2>
@@ -526,6 +539,54 @@ export default function DailyLogFormModal({ isOpen, onClose, animal, mode, initi
               </div>
             )}
 
+            {/* --- NEW MISTING UI SECTION --- */}
+            {mode === 'MISTING' && (
+              <div className="space-y-4 p-4 bg-cyan-50/80 border border-cyan-100 rounded-xl shadow-sm">
+                
+                <form.Field name="mist_level">
+                  {(field) => (
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-cyan-800">Mist Intensity</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {['LIGHT', 'MEDIUM', 'HEAVY'].map(level => (
+                          <button
+                            key={level}
+                            type="button"
+                            onClick={() => field.handleChange(level)}
+                            className={`py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${field.state.value === level ? 'bg-cyan-500 text-white shadow-md' : 'bg-white text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}
+                          >
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </form.Field>
+
+                <form.Field name="am_pm">
+                  {(field) => (
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-cyan-800">Time of Day</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['AM', 'PM'].map(time => (
+                          <button
+                            key={time}
+                            type="button"
+                            onClick={() => field.handleChange(time)}
+                            className={`py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${field.state.value === time ? 'bg-cyan-600 text-white shadow-md' : 'bg-white text-cyan-700 border border-cyan-200 hover:bg-cyan-100'}`}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </form.Field>
+
+              </div>
+            )}
+            {/* ------------------------------- */}
+
             {mode === 'FEEDING' && (
               <div className="space-y-3">
                 <form.Field name="meals">
@@ -605,6 +666,7 @@ export default function DailyLogFormModal({ isOpen, onClose, animal, mode, initi
                 className={`flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm disabled:opacity-50 min-w-[120px] ${
                   mode === 'WEIGHT' ? 'bg-emerald-600 hover:bg-emerald-500' :
                   mode === 'FEEDING' ? 'bg-amber-600 hover:bg-amber-500' :
+                  mode === 'MISTING' ? 'bg-cyan-600 hover:bg-cyan-500' :
                   'bg-blue-600 hover:bg-blue-500'
                 }`}
               >

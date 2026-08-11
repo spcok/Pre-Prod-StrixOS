@@ -13,6 +13,8 @@ export type DietOutcome = 'EATEN' | 'REFUSED' | 'FASTING' | 'NOT_CAST' | 'REGURG
 // The scheduling triage states
 export type ScheduleStatus = 'PENDING' | 'COMPLETED' | 'REFUSED' | 'FASTING' | 'NOT_CAST';
 
+export type MistLevel = 'LIGHT' | 'MEDIUM' | 'HEAVY';
+
 // ============================================================================
 // ZONE 2: DATABASE ENTITIES (V3 SCHEMA POSTGRESQL DEFINITIONS)
 // ============================================================================
@@ -141,21 +143,21 @@ export interface TemperatureLog {
   modified_at?: string | null;
 }
 
-// Legacy / General Observations Table
-export interface DailyLog {
-  id: string; // uuid
-  animal_id: string; // uuid
-  conducted_by: string; // uuid
-  recorded_at?: string; // timestamp
-  log_date?: string; 
-  log_type: 'HUSBANDRY' | 'OBSERVATION' | 'CLINICAL' | 'NOTE';
-  notes: string | null;
-  is_deleted: boolean;
-  created_by?: string; // uuid
-  created_at?: string;
-  updated_at?: string;
+// Add this to your Husbandry Tables (Zone 2)
+export interface MistLog {
+  id?: string;
+  animal_id: string;
+  recorded_by: string; // uuid of the Keeper
+  recorded_at: string; // timestamp
+  mist_level: MistLevel;
+  am_pm: 'AM' | 'PM';
+  notes?: string | null;
+  is_deleted?: boolean | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  modified_by?: string | null;
+  modified_at?: string | null;
 }
-
 export interface ClinicalRecord {
   id?: string;
   animal_id: string;
@@ -357,6 +359,28 @@ export interface RBACMatrix {
   capabilities: string[]; // e.g., ['husbandry:read', 'clinical:write']
   created_at?: string;
   updated_at?: string;
+}
+
+// ------------------------------------------------------------------
+// LOGISTICS & VOUCHER TYPES (ADDED FROM SCHEMA)
+// ------------------------------------------------------------------
+
+export interface Voucher {
+  id: string; // uuid
+  transaction_id: string;
+  voucher_code: string;
+  experience_type: string;
+  purchaser_name: string;
+  purchaser_email: string;
+  purchaser_mobile?: string | null;
+  participants: number;
+  guests: number;
+  purchase_date?: string | null; // timestamp
+  status: string;
+  redeemed_at?: string | null; // timestamp
+  redeemed_by?: string | null; // uuid
+  expires_at?: string | null; // timestamp
+  item_name?: string | null;
 }
 
 // ============================================================================
